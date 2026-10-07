@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Gestión de Call Center y Tickets</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Smooth transitions for dark mode toggle */
+        body, div, span, card {
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        /* Custom scrollbar style */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.5);
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen font-sans antialiased">
+
+    <!-- TOP NAVBAR -->
+    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-blue-600 rounded-xl text-white shadow-md shadow-blue-500/20">
+                    <i data-lucide="headphone-off" class="w-6 h-6 hidden"></i>
+                    <i data-lucide="headset" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-900 dark:text-white leading-tight">Control Center</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Llamadas & Tickets en Tiempo Real</p>
+                </div>
+            </div>
+
+            <!-- Header Controls & Filters -->
+            <div class="flex items-center space-x-3 sm:space-x-4">
+                <!-- Live Status Indicator -->
+                <div class="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50">
+                    <span class="relative flex h-2.5 w-2.5">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <span class="text-xs font-semibold text-emerald-700 dark:text-emerald-400">En Vivo</span>
+                </div>
+
+                <!-- Dark Mode Toggle Button -->
+                <button id="themeToggleBtn" onclick="toggleTheme()" class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl bg-slate-100 dark:bg-slate-700 transition-colors" title="Cambiar tema">
+                    <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+                    <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
+                </button>
+
+                <!-- Trigger Live Call Simulation Button -->
+                <button onclick="simulateLiveEvent()" class="flex items-center space-x-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium shadow-md shadow-blue-500/20 active:scale-95 transition-all">
+                    <i data-lucide="zap" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Simular Evento</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- FILTER BAR -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
+            <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                <!-- Date Filter -->
+                <div class="flex items-center space-x-2 bg-slate-100 dark:bg-slate-700/60 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-600">
+                    <i data-lucide="calendar" class="w-4 h-4 text-slate-500 dark:text-slate-400"></i>
+                    <select id="dateRangeSelect" onchange="filterData()" class="bg-transparent text-sm font-medium text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer">
+                        <option value="today" selected class="dark:bg-slate-800">Hoy (06 Oct)</option>
+                        <option value="yesterday" class="dark:bg-slate-800">Ayer</option>
+                        <option value="week" class="dark:bg-slate-800">Esta Semana</option>
+                    </select>
+                </div>
+
+                <!-- Department Filter -->
+                <div class="flex items-center space-x-2 bg-slate-100 dark:bg-slate-700/60 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-600">
+                    <i data-lucide="users" class="w-4 h-4 text-slate-500 dark:text-slate-400"></i>
+                    <select id="deptSelect" onchange="filterData()" class="bg-transparent text-sm font-medium text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer">
+                        <option value="all" class="dark:bg-slate-800">Todos los Dptos.</option>
+                        <option value="support" class="dark:bg-slate-800">Soporte Técnico</option>
+                        <option value="sales" class="dark:bg-slate-800">Ventas & Cobros</option>
+                        <option value="claims" class="dark:bg-slate-800">Reclamaciones</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="text-xs text-slate-500 dark:text-slate-400 flex items-center space-x-2 self-end sm:self-auto">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin"></i>
+                <span>Última sincro: <strong id="lastSyncTime">12:00 PM</strong></span>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 1: SUPERIOR - 4 PILARES RECTANGULARES / KPI CARDS -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            
+            <!-- Pilar 1: ATENDIDAS -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-2 h-full bg-emerald-500"></div>
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">Atendidas</span>
+                    <div class="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+                        <i data-lucide="phone-incoming" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <h2 id="kpiAtendidas" class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">10</h2>
+                    <span class="inline-flex items-center text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
+                        <i data-lucide="trending-up" class="w-3 h-3 mr-1"></i> 92.5%
+                    </span>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center">
+                </p>
+            </div>
+
+            <!-- Pilar 2: PERDIDAS -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-2 h-full bg-rose-500"></div>
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">Perdidas</span>
+                    <div class="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400">
+                        <i data-lucide="phone-missed" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <h2 id="kpiPerdidas" class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">1</h2>
+                    <span class="inline-flex items-center text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-2 py-0.5 rounded-full">
+                        <i data-lucide="trending-down" class="w-3 h-3 mr-1"></i> 7.5%
+                    </span>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center">
+                </p>
+            </div>
+
+            <!-- Pilar 3: T. HABLADO -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-2 h-full bg-blue-500"></div>
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">T. Hablado</span>
+                    <div class="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
+                        <i data-lucide="clock" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <h2 id="kpiTHablado" class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">00:00:00</h2>
+                    <span class="inline-flex items-center text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded-full">
+                        Total
+                    </span>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center">
+                    Acumulado en tiempo directo
+                </p>
+            </div>
+
+            <!-- Pilar 4: T. PROMEDIO -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-2 h-full bg-indigo-500"></div>
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">T. Promedio</span>
+                    <div class="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
+                        <i data-lucide="timer" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <h2 id="kpiTPromedio" class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">00:00:00</h2>
+                    <span class="inline-flex items-center text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-full">  
+                    </span>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center">
+                    Objetivo SLA: &lt; 15m 00s
+                </p>
+            </div>
+
+        </section>
+
+        <!-- SECCIÓN INFERIOR: TICKETS (IZQUIERDA) Y GRÁFICAS / ACTIVIDAD (DERECHA) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- PARTE INFERIOR IZQUIERDA: GESTIÓN DE TICKETS -->
+            <div class="lg:col-span-5 space-y-5 flex flex-col justify-between">
+                
+                <!-- BLOQUE DESTACADO: TICKETS CERRADOS HOY -->
+                <div class="bg-gradient-to-br from-indigo-600 via-blue-600 to-blue-700 rounded-3xl p-6 text-white shadow-lg shadow-blue-500/15 relative overflow-hidden">
+                    <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+                    
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-xs font-bold tracking-wider uppercase text-blue-100 bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm">
+                            Indicador Diario
+                        </span>
+                        <div class="p-2 bg-white/10 rounded-xl backdrop-blur-sm">
+                            <i data-lucide="check-circle-2" class="w-6 h-6 text-emerald-300"></i>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1">
+                        <p class="text-sm font-medium text-blue-100">TICKETS CERRADOS HOY</p>
+                        <div class="flex items-baseline space-x-3">
+                            <span id="ticketsClosedVal" class="text-5xl font-black tracking-tight">13</span>
+                            <span class="text-xs text-emerald-300 bg-emerald-500/20 px-2.5 py-1 rounded-full font-medium flex items-center">
+                                <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 mr-0.5"></i> Meta al 100%
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar Resolution -->
+                    <div class="mt-6 space-y-2">
+                        <div class="flex justify-between text-xs font-semibold text-blue-100">
+                            <span>Tasa de Resolución Diaria</span>
+                            <span id="resolutionRateText">80%</span>
+                        </div>
+                        <div class="w-full h-2.5 bg-blue-950/40 rounded-full overflow-hidden p-0.5 border border-white/10">
+                            <div id="progressBar" class="bg-emerald-400 h-full rounded-full transition-all duration-700 ease-out" style="width: 84%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DOS TARJETAS VISUALES: PENDIENTES Y ABIERTOS -->
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Tickets Pendientes -->
+                    <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm hover:border-amber-400 dark:hover:border-amber-500 transition-all">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Pendientes</span>
+                            <div class="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
+                                <i data-lucide="hourglass" class="w-4 h-4"></i>
+                            </div>
+                        </div>
+                        <p id="ticketsPendingVal" class="text-2xl font-bold text-slate-900 dark:text-white">8</p>
+                        <p class="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-medium flex items-center">
+                            <i data-lucide="alert-triangle" class="w-3 h-3 mr-1"></i> Requieren seguimiento
+                        </p>
+                    </div>
+
+                    <!-- Tickets Abiertos -->
+                    <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm hover:border-sky-400 dark:hover:border-sky-500 transition-all">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Abiertos</span>
+                            <div class="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400">
+                                <i data-lucide="folder-open" class="w-4 h-4"></i>
+                            </div>
+                        </div>
+                        <p id="ticketsOpenVal" class="text-2xl font-bold text-slate-900 dark:text-white">15</p>
+                        <p class="text-[11px] text-sky-600 dark:text-sky-400 mt-1 font-medium flex items-center">
+                            <i data-lucide="play" class="w-3 h-3 mr-1"></i> En gestión activa
+                        </p>
+                    </div>
+                </div>
+
+                <!-- RESUMEN DE AGENTES / SLA RADIAL -->
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
+                    <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4 flex items-center justify-between">
+                        <span>Estado de Agentes Hoy</span>
+                        <span class="text-emerald-600 dark:text-emerald-400 font-semibold normal-case text-xs">12 Conectados</span>
+                    </h3>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="flex justify-between text-xs font-medium mb-1 text-slate-700 dark:text-slate-300">
+                                <span>Agentes en llamada</span>
+                                <span class="font-bold">7 / 12</span>
+                            </div>
+                            <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
+                                <div class="bg-blue-600 h-2 rounded-full" style="width: 58%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs font-medium mb-1 text-slate-700 dark:text-slate-300">
+                                <span>Agentes disponibles</span>
+                                <span class="font-bold">4 / 12</span>
+                            </div>
+                            <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
+                                <div class="bg-emerald-500 h-2 rounded-full" style="width: 33%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- PARTE INFERIOR DERECHA: GRÁFICA & RECENT ACTIVITY TABLE -->
+            <div class="lg:col-span-7 space-y-5">
+                
+                <!-- GRÁFICA INTERACTIVA DE LLAMADAS Y TICKETS POR HORA -->
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white">Flujo por Hora del Día</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Comparativa entre llamadas atendidas y tickets resue  ltos</p>
+                        </div>
+                        <div class="flex items-center space-x-3 text-xs font-medium">
+                            <span class="flex items-center text-slate-600 dark:text-slate-300">
+                                <span class="w-3 h-3 bg-blue-500 rounded-full mr-1.5 inline-block"></span> Atendidas
+                            </span>
+                            <span class="flex items-center text-slate-600 dark:text-slate-300">
+                                <span class="w-3 h-3 bg-emerald-500 rounded-full mr-1.5 inline-block"></span> Tickets
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="h-64 w-full relative">
+                        <canvas id="hourlyChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- TABLA EN TIEMPO REAL DE ÚLTIMAS LLAMADAS / TICKETS -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Registro Reciente en Vivo</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Últimas interacciones procesadas</p>
+                        </div>
+                        <span class="px-2.5 py-1 text-xs rounded-lg font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                            Auto-actualizable
+                        </span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 uppercase font-semibold border-b border-slate-100 dark:border-slate-700">
+                                <tr>
+                                    <th class="px-4 py-3">Cliente / Origen</th>
+                                    <th class="px-4 py-3">Tipo</th>
+                                    <th class="px-4 py-3">Agente</th>
+                                    <th class="px-4 py-3">Estado</th>
+                                    <th class="px-4 py-3 text-right">Duración / Hora</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activityLogTable" class="divide-y divide-slate-100 dark:divide-slate-700/60 text-slate-700 dark:text-slate-300 font-medium">
+                                <!-- Populated dynamically by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <script>
+        // --- DATA STATE ---
+        const initialData = {
+            today: {
+                atendidas: 148,
+                perdidas: 12,
+                tHablado: "18h 45m",
+                tPromedio: "04m 12s",
+                cerrados: 42,
+                pendientes: 8,
+                abiertos: 15,
+                resolutionPct: 84,
+                chartAtendidas: [12, 18, 25, 30, 22, 19, 14, 8],
+                chartTickets: [5, 8, 12, 10, 4, 2, 1, 0]
+            },
+            yesterday: {
+                atendidas: 132,
+                perdidas: 18,
+                tHablado: "16h 20m",
+                tPromedio: "04m 35s",
+                cerrados: 38,
+                pendientes: 11,
+                abiertos: 19,
+                resolutionPct: 78,
+                chartAtendidas: [10, 15, 22, 28, 20, 17, 12, 8],
+                chartTickets: [4, 6, 10, 9, 5, 3, 1, 0]
+            },
+            week: {
+                atendidas: 840,
+                perdidas: 64,
+                tHablado: "102h 10m",
+                tPromedio: "04m 08s",
+                cerrados: 260,
+                pendientes: 14,
+                abiertos: 22,
+                resolutionPct: 89,
+                chartAtendidas: [95, 120, 148, 130, 140, 110, 97, 0],
+                chartTickets: [30, 45, 52, 48, 50, 35, 0, 0]
+            }
+        };
+
+        const initialLogs = [
+            { client: "Carlos Mendoza", phone: "+52 55 4123 9812", type: "Llamada", agent: "Ana Gómez", status: "Atendida", time: "03m 45s", statusClass: "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400" },
+            { client: "Mariana Torres", phone: "Ticket #1094", type: "Ticket", agent: "Luis Rivas", status: "Cerrado", time: "11:42 AM", statusClass: "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400" },
+            { client: "Desconocido", phone: "+52 81 8821 0041", type: "Llamada", agent: "N/A", status: "Perdida", time: "11:38 AM", statusClass: "bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400" },
+            { client: "Roberto Silva", phone: "Ticket #1093", type: "Ticket", agent: "Sofia Cruz", status: "En Curso", time: "11:25 AM", statusClass: "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400" },
+            { client: "Laura Restrepo", phone: "+52 33 1920 8831", type: "Llamada", agent: "Javier Díaz", status: "Atendida", time: "05m 12s", statusClass: "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400" }
+        ];
+
+        let hourlyChart = null;
+
+        // --- INITIALIZATION ---
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initChart();
+            renderActivityLogs();
+            updateSyncTime();
+        });
+
+        // --- CHART JS SETUP ---
+        function initChart() {
+            const ctx = document.getElementById('hourlyChart').getContext('2d');
+            
+            const hours = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00'];
+            
+            hourlyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: hours,
+                    datasets: [
+                        {
+                            label: 'Llamadas Atendidas',
+                            data: initialData.today.chartAtendidas,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 2.5,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#3b82f6'
+                        },
+                        {
+                            label: 'Tickets Resueltos',
+                            data: initialData.today.chartTickets,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 2.5,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#10b981'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(156, 163, 175, 0.15)'
+                            },
+                            ticks: {
+                                font: { family: 'Inter', size: 11 }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                font: { family: 'Inter', size: 11 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- RENDER LOGS TABLE ---
+        function renderActivityLogs() {
+            const tableBody = document.getElementById('activityLogTable');
+            tableBody.innerHTML = initialLogs.map(log => `
+                <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors">
+                    <td class="px-4 py-3">
+                        <div class="font-semibold text-slate-900 dark:text-slate-100">${log.client}</div>
+                        <div class="text-[11px] text-slate-400">${log.phone}</div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center gap-1 text-[11px]">
+                            <i data-lucide="${log.type === 'Llamada' ? 'phone' : 'ticket'}" class="w-3.5 h-3.5 text-slate-400"></i>
+                            ${log.type}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-slate-600 dark:text-slate-300">${log.agent}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full ${log.statusClass}">
+                            ${log.status}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-right font-mono text-[11px] text-slate-500 dark:text-slate-400">${log.time}</td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // --- FILTER FUNCTIONALITY ---
+        function filterData() {
+            const range = document.getElementById('dateRangeSelect').value;
+            const data = initialData[range] || initialData.today;
+
+            // Smooth UI Update
+            document.getElementById('kpiAtendidas').innerText = data.atendidas;
+            document.getElementById('kpiPerdidas').innerText = data.perdidas;
+            document.getElementById('kpiTHablado').innerText = data.tHablado;
+            document.getElementById('kpiTPromedio').innerText = data.tPromedio;
+
+            document.getElementById('ticketsClosedVal').innerText = data.cerrados;
+            document.getElementById('ticketsPendingVal').innerText = data.pendientes;
+            document.getElementById('ticketsOpenVal').innerText = data.abiertos;
+            
+            document.getElementById('resolutionRateText').innerText = `${data.resolutionPct}%`;
+            document.getElementById('progressBar').style.width = `${data.resolutionPct}%`;
+
+            // Update Chart
+            if (hourlyChart) {
+                hourlyChart.data.datasets[0].data = data.chartAtendidas;
+                hourlyChart.data.datasets[1].data = data.chartTickets;
+                hourlyChart.update();
+            }
+
+            updateSyncTime();
+        }
+
+        // --- SIMULATE LIVE EVENT (CALL / TICKET) ---
+        function simulateLiveEvent() {
+            const isCall = Math.random() > 0.4;
+            const agents = ['Ana Gómez', 'Luis Rivas', 'Sofia Cruz', 'Javier Díaz', 'Elena Torres'];
+            const randomAgent = agents[Math.floor(Math.random() * agents.length)];
+            const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            if (isCall) {
+                const isAttended = Math.random() > 0.15;
+                const newAtendidasVal = parseInt(document.getElementById('kpiAtendidas').innerText) + (isAttended ? 1 : 0);
+                const newPerdidasVal = parseInt(document.getElementById('kpiPerdidas').innerText) + (isAttended ? 0 : 1);
+
+                document.getElementById('kpiAtendidas').innerText = newAtendidasVal;
+                document.getElementById('kpiPerdidas').innerText = newPerdidasVal;
+
+                // Add to table
+                initialLogs.unshift({
+                    client: `Cliente #${Math.floor(1000 + Math.random() * 9000)}`,
+                    phone: `+52 55 ${Math.floor(1000 + Math.random() * 9000)}`,
+                    type: 'Llamada',
+                    agent: isAttended ? randomAgent : 'N/A',
+                    status: isAttended ? 'Atendida' : 'Perdida',
+                    time: isAttended ? '02m ' + Math.floor(10 + Math.random() * 45) + 's' : nowTime,
+                    statusClass: isAttended ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400'
+                });
+            } else {
+                const currentClosed = parseInt(document.getElementById('ticketsClosedVal').innerText);
+                document.getElementById('ticketsClosedVal').innerText = currentClosed + 1;
+
+                initialLogs.unshift({
+                    client: `Cliente #${Math.floor(1000 + Math.random() * 9000)}`,
+                    phone: `Ticket #${Math.floor(1100 + Math.random() * 100)}`,
+                    type: 'Ticket',
+                    agent: randomAgent,
+                    status: 'Cerrado',
+                    time: nowTime,
+                    statusClass: 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400'
+                });
+            }
+
+            if (initialLogs.length > 6) initialLogs.pop();
+            renderActivityLogs();
+            updateSyncTime();
+        }
+
+        // --- HELPER FUNCTIONS ---
+        function updateSyncTime() {
+            const now = new Date();
+            document.getElementById('lastSyncTime').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+        }
+    </script>
+</body>
+</html>
